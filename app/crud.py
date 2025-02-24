@@ -8,7 +8,7 @@ async def get_drinks(db: AsyncSession):
     return result.scalars().all()
 
 async def create_drink(db: AsyncSession, drink: DrinkCreate):
-    new_drink = Drink(name=drink.name, description=drink.description)
+    new_drink = Drink(name=drink.name, description=drink.description, ingredients=drink.ingredients)
     db.add(new_drink)
     await db.commit()
     await db.refresh(new_drink)

@@ -33,3 +33,18 @@ SELECT * FROM drinks;
 
 ##############
 
+Body Json para crear un DRINK nuevo:
+
+	{
+		"name": "Margarita new",
+		"description": "Pepe A classic cocktail with tequila.",
+		"ingredients": {
+			"lime": 3022,
+			"tequila": 52120,
+			"triple sec": 2033
+		}
+	}
+
+
+
+

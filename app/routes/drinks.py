@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.schemas import DrinkCreate, DrinkResponse
+from app.models import Drink
 from app.crud import get_drinks, create_drink, delete_drink
 from typing import List
 
@@ -14,6 +15,16 @@ async def read_drinks(db: AsyncSession = Depends(get_db)):
 @router.post("/", response_model=DrinkResponse)
 async def add_drink(drink: DrinkCreate, db: AsyncSession = Depends(get_db)):
     return await create_drink(db, drink)
+
+@router.post("/prepare")
+async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
+    drink = await db.get(Drink, drink_id)
+    if not drink:
+        raise HTTPException(status_code=404, detail="Drink not found")
+    
+    return {
+        "message": f"Preparing {drink.name} with ingredients {drink.ingredients}"
+    }
 
 @router.delete("/{drink_id}")
 async def remove_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
