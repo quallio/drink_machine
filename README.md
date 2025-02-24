@@ -4,7 +4,17 @@ This is a repo for our Final Project code. It is a funny drink machine.
 # Activate venv
 source venv/bin/activate
 
-###################### BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
+# BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
+
+docker run -d \
+  --name drinks_postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=drinksdb \
+  -p 5432:5432 \
+  postgres:latest
+
+--------------
 
 CREATE TABLE drinks (
     id SERIAL PRIMARY KEY,
@@ -20,3 +30,6 @@ VALUES
 
 
 SELECT * FROM drinks;
+
+##############
+
