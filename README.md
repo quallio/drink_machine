@@ -10,7 +10,7 @@ docker start drinks_postgres
 docker ps (to check if it is running...)
 
 # Run the FastApi server
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Check using the browser if it is running.
 http://localhost:8000/docs
