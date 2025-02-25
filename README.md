@@ -18,6 +18,13 @@ http://localhost:8000/docs
 # Insomnia
 Usa Insomnia para pegarle a los distintos endpoints.
 
+# Conectarme desde mi notebook a la Raspberry
+
+ssh pf@192.168.1.44
+password: pf
+
+
+
 
 
 # BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
