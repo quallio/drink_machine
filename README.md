@@ -32,7 +32,8 @@ sudo systemctl status postgresql
 # Entrar a POSTGRESQL:
 sudo -u postgres psql
 
-
+# para salir de escribir queries en psql desde consola: 
+\q
 
 
 # BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
