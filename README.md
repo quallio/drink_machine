@@ -35,6 +35,12 @@ sudo -u postgres psql
 # para salir de escribir queries en psql desde consola: 
 \q
 
+# Ejemplo de como poner los ingredientes en el FE:
+{"ron": 30, "limón": 20, "azúcar": 10}
+
+# Para servir el FE ejecutar en /frontend :
+python3 -m http.server 8080
+Y abrir en el navegador : http://127.0.0.1:8080/
 
 # BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
 

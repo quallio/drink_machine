@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drink Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1, h2 {
+            color: #007bff;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #fff;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #c82333;
+        }
+
+        .drink-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .drink-form input, .drink-form textarea, .drink-form button {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        .drink-form button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .drink-form button:hover {
+            background-color: #218838;
+        }
+
+        /* Responsivo */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            li {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            button {
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Drink Machine 🍹</h1>
+
+    <h2>Lista de Drinks</h2>
+    <ul id="drinks-list"></ul>
+
+    <h2>Agregar un Drink</h2>
+    <div class="drink-form">
+        <input type="text" id="drink-name" placeholder="Nombre del trago">
+        <input type="text" id="drink-description" placeholder="Descripción">
+        <textarea id="drink-ingredients" placeholder='Ingredientes (JSON: {"ron": 30, "limón": 20})'></textarea>
+        <button onclick="addDrink()">Agregar</button>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/drinks/";
+
+        async function fetchDrinks() {
+            const response = await fetch(API_URL);
+            const drinks = await response.json();
+            const list = document.getElementById("drinks-list");
+            list.innerHTML = "";
+            drinks.forEach(drink => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span><strong>${drink.name}</strong> - ${drink.description}</span>
+                    <button onclick="deleteDrink(${drink.id})">Eliminar</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function addDrink() {
+            const name = document.getElementById("drink-name").value.trim();
+            const description = document.getElementById("drink-description").value.trim();
+            const ingredientsInput = document.getElementById("drink-ingredients").value.trim();
+
+            let ingredients;
+            try {
+                ingredients = JSON.parse(ingredientsInput);
+            } catch (error) {
+                alert("Error: Los ingredientes deben estar en formato JSON válido.");
+                return;
+            }
+
+            if (!name || !description || !ingredients) {
+                alert("Por favor, completa todos los campos.");
+                return;
+            }
+
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name,
+                    description: description,
+                    ingredients: ingredients
+                })
+            });
+
+            if (response.ok) {
+                fetchDrinks();
+            } else {
+                alert("Error al agregar el drink");
+            }
+        }
+
+        async function deleteDrink(id) {
+            const response = await fetch(`${API_URL}${id}`, { method: "DELETE" });
+
+            if (response.ok) {
+                fetchDrinks();
+            } else {
+                alert("Error al eliminar el drink");
+            }
+        }
+
+        fetchDrinks();
+    </script>
+</body>
+</html>
