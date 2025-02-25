@@ -4,6 +4,22 @@ This is a repo for our Final Project code. It is a funny drink machine.
 # Activate venv
 source venv/bin/activate
 
+# Run the DB in the Docker
+docker ps
+docker start drinks_postgres
+docker ps (to check if it is running...)
+
+# Run the FastApi server
+uvicorn app.main:app --reload
+
+# Check using the browser if it is running.
+http://localhost:8000/docs
+
+# Insomnia
+Usa Insomnia para pegarle a los distintos endpoints.
+
+
+
 # BASE DE DATOS, CREACIÓN DE TABLA Y DEMAS, DESDE LAS QUERIES:
 
 docker run -d \
