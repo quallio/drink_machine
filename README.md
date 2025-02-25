@@ -23,6 +23,14 @@ Usa Insomnia para pegarle a los distintos endpoints.
 ssh pf@192.168.1.44
 password: pf
 
+# Como iniciado POSTGRESQL, iniciarlo así:
+sudo systemctl start postgresql
+
+# Ver si ha iniciado, así:
+sudo systemctl status postgresql
+
+# Entrar a POSTGRESQL:
+sudo -u postgres psql
 
 
 
