@@ -1,22 +1,72 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.models import Drink
-from app.schemas import DrinkCreate
+from sqlalchemy.orm import joinedload
+from app.models import Drink, Ingredient, DrinkIngredient, Pump
+from app.schemas import DrinkCreate, IngredientCreate, PumpCreate
 
+# Obtener lista de Drinks con sus ingredientes
 async def get_drinks(db: AsyncSession):
-    result = await db.execute(select(Drink))
+    result = await db.execute(
+        select(Drink)
+        .options(joinedload(Drink.ingredients).joinedload(DrinkIngredient.ingredient))
+    )
+    return result.unique().scalars().all()  # <--- Agregamos .unique()
+
+
+# Crear un nuevo Drink con ingredientes asociados
+async def create_drink(db: AsyncSession, drink_data: DrinkCreate):
+    drink = Drink(name=drink_data.name, description=drink_data.description)
+    db.add(drink)
+    await db.commit()
+    await db.refresh(drink)
+
+    # Agregar los ingredientes a drink_ingredients
+    for ingredient_data in drink_data.ingredients:
+        drink_ingredient = DrinkIngredient(
+            drink_id=drink.id,
+            ingredient_id=ingredient_data.ingredient_id,
+            amount_ml=ingredient_data.amount_ml
+        )
+        db.add(drink_ingredient)
+
+    await db.commit()
+
+    # 🔹 IMPORTANTE: Volvemos a obtener el objeto `Drink` con `joinedload()`
+    result = await db.execute(
+        select(Drink)
+        .options(joinedload(Drink.ingredients).joinedload(DrinkIngredient.ingredient))
+        .filter(Drink.id == drink.id)
+    )
+    return result.unique().scalar_one()
+
+
+# Obtener lista de ingredientes
+async def get_ingredients(db: AsyncSession):
+    result = await db.execute(select(Ingredient))
     return result.scalars().all()
 
-async def create_drink(db: AsyncSession, drink: DrinkCreate):
-    new_drink = Drink(name=drink.name, description=drink.description, ingredients=drink.ingredients)
-    db.add(new_drink)
+# Crear un nuevo ingrediente
+async def create_ingredient(db: AsyncSession, ingredient_data: IngredientCreate):
+    ingredient = Ingredient(name=ingredient_data.name, is_alcoholic=ingredient_data.is_alcoholic)
+    db.add(ingredient)
     await db.commit()
-    await db.refresh(new_drink)
-    return new_drink
+    await db.refresh(ingredient)
+    return ingredient
 
-async def delete_drink(db: AsyncSession, drink_id: int):
-    drink = await db.get(Drink, drink_id)
-    if drink:
-        await db.delete(drink)
-        await db.commit()
-    return drink
+# Obtener la configuración actual de las bombas
+async def get_pumps(db: AsyncSession):
+    result = await db.execute(select(Pump).options(joinedload(Pump.ingredient)))
+    return result.scalars().all()
+
+# Configurar un ingrediente en una bomba
+async def assign_pump(db: AsyncSession, pump_data: PumpCreate):
+    pump = await db.get(Pump, pump_data.ingredient_id)
+    if pump:
+        pump.ingredient_id = pump_data.ingredient_id
+    else:
+        pump = Pump(ingredient_id=pump_data.ingredient_id)
+        db.add(pump)
+
+    await db.commit()
+    await db.refresh(pump)
+    return pump

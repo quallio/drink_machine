@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import drinks
+from app.routes import drinks, pumps
 from app.database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,7 +16,9 @@ app.add_middleware(
 
 # Incluir rutas
 app.include_router(drinks.router)
+app.include_router(pumps.router)
 
 @app.get("/")
 def home():
     return {"message": "Welcome to Drink Machine API!"}
+

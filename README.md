@@ -84,5 +84,77 @@ Body Json para crear un DRINK nuevo:
 	}
 
 
+Elimina la columna ingredients porque nos damos cuenta que no la usaremos.
+
+ALTER TABLE drinks DROP COLUMN IF EXISTS ingredients;
+
+
+
+Crear la tabla ingredients (Lista de ingredientes posibles)
+
+CREATE TABLE ingredients (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    is_alcoholic BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+
+Ejemplo:
+
+INSERT INTO ingredients (name, is_alcoholic) VALUES 
+('Tequila', TRUE),
+('Vodka', TRUE),
+('Ron', TRUE),
+('Jugo de Naranja', FALSE),
+('Granadina', FALSE),
+('Jugo de Limón', FALSE);
+
+
+Crear la tabla drink_ingredients (Relación entre tragos e ingredientes)
+
+CREATE TABLE drink_ingredients (
+    id SERIAL PRIMARY KEY,
+    drink_id INT NOT NULL,
+    ingredient_id INT NOT NULL,
+    amount_ml INT NOT NULL, 
+    FOREIGN KEY (drink_id) REFERENCES drinks(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+);
+
+Ejemplo de inserción de datos (asociando ingredientes a tragos):
+
+INSERT INTO drink_ingredients (drink_id, ingredient_id, amount_ml) VALUES 
+(1, 1, 50),  -- Margarita: 50ml Tequila
+(1, 6, 30),  -- Margarita: 30ml Jugo de Limón
+(2, 1, 40),  -- Tequila Sunrise: 40ml Tequila
+(2, 4, 100), -- Tequila Sunrise: 100ml Jugo de Naranja
+(2, 5, 10);  -- Tequila Sunrise: 10ml Granadina
+
+
+Crear la tabla pumps (Asignación de ingredientes a las bombas)
+
+CREATE TABLE pumps (
+    id SERIAL PRIMARY KEY,      -- ID de la bomba (1-4)
+    ingredient_id INT UNIQUE,   -- Ingrediente asignado a la bomba
+    assigned_at TIMESTAMP DEFAULT now(),
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE SET NULL
+);
+
+
+Ejemplo de inserción de datos:
+
+INSERT INTO pumps (ingredient_id) VALUES 
+(1),  -- Bomba 1: Tequila
+(4),  -- Bomba 2: Jugo de Naranja
+(5),  -- Bomba 3: Granadina
+(6);  -- Bomba 4: Jugo de Limón
+
+
+Consulta las tablas con:
+
+SELECT * FROM ingredients;
+SELECT * FROM drink_ingredients;
+SELECT * FROM pumps;
+
 
 
