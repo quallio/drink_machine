@@ -19,21 +19,23 @@ http://localhost:8000/docs
 Usa Insomnia para pegarle a los distintos endpoints.
 
 # Conectarme desde mi notebook a la Raspberry
-
 ssh pf@192.168.1.44
 password: pf
 
-# Como iniciado POSTGRESQL, iniciarlo así:
+# Como iniciar POSTGRESQL, iniciarlo así:
 sudo systemctl start postgresql
-
 # Ver si ha iniciado, así:
 sudo systemctl status postgresql
-
-# Entrar a POSTGRESQL:
-sudo -u postgres psql
-
+# Prueba conectarte a la base de datos desde la Raspberry con (usando user "pf", con password: "pf"):
+psql -U pf -d drinksdb 
+# La db se llama drinksdb y ahí tenemos todas las tablas.
 # para salir de escribir queries en psql desde consola: 
 \q
+# Para conectarme a la db de la Raspberry desde mi notebook, correr en la terminal de linux:
+psql -U pf -h 192.168.1.44 -d drinksdb
+# Para conectarme desde mi notebook a la Raspberry, usando el server de FastApi, revisar que el .env le pegue a la db de la Raspberry...
+DATABASE_URL=postgresql+asyncpg://pf:pf@192.168.1.44:5432/drinksdb
+
 
 # Ejemplo de como poner los ingredientes en el FE:
 {"ron": 30, "limón": 20, "azúcar": 10}

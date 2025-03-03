@@ -38,6 +38,11 @@ async def read_pumps(db: AsyncSession = Depends(get_db)):
 
 
 # Asignar un ingrediente a una bomba
-@router.post("/", response_model=PumpResponse)
-async def set_pump(pump_data: PumpCreate, db: AsyncSession = Depends(get_db)):
-    return await assign_pump(db, pump_data)
+@router.post("/{pump_id}", response_model=PumpResponse)
+async def set_pump(pump_id: int, pump_data: PumpCreate, db: AsyncSession = Depends(get_db)):
+    updated_pump = await assign_pump(db, pump_id, pump_data)
+
+    if not updated_pump:
+        raise HTTPException(status_code=404, detail="Pump not found")
+
+    return updated_pump

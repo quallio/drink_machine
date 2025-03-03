@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 # Esquema para Ingrediente
 class IngredientBase(BaseModel):
@@ -54,8 +55,11 @@ class PumpCreate(PumpBase):
 
 class PumpResponse(PumpBase):
     id: int
-    assigned_at: str
+    assigned_at: datetime  # Cambia a datetime
     ingredient: Optional[IngredientResponse]
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()  # Convierte datetime a string ISO 8601
+        }
