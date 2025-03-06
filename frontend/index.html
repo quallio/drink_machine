@@ -15,8 +15,37 @@
             text-align: center;
         }
 
-        h1, h2 {
+        h1 {
             color: #007bff;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            background-color: #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .tab-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         ul {
@@ -33,20 +62,6 @@
             align-items: center;
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background-color: #c82333;
         }
 
         .drink-form {
@@ -79,43 +94,53 @@
         .drink-form button:hover {
             background-color: #218838;
         }
-
-        /* Responsivo */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            
-            li {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            button {
-                margin-top: 5px;
-            }
-        }
     </style>
 </head>
 <body>
     <h1>Drink Machine 🍹</h1>
 
-    <h2>Lista de Drinks</h2>
-    <ul id="drinks-list"></ul>
+    <div class="tabs">
+        <button class="tab-button active" onclick="showTab('drinks-tab')">Lista de Drinks</button>
+        <button class="tab-button" onclick="showTab('add-drink-tab')">Agregar Drink</button>
+        <button class="tab-button" onclick="showTab('pumps-tab')">Configurar Pumps</button>
+    </div>
 
-    <h2>Agregar un Drink</h2>
-    <div class="drink-form">
-        <input type="text" id="drink-name" placeholder="Nombre del trago">
-        <input type="text" id="drink-description" placeholder="Descripción">
-        <textarea id="drink-ingredients" placeholder='Ingredientes (JSON: {"ron": 30, "limón": 20})'></textarea>
-        <button onclick="addDrink()">Agregar</button>
+    <div id="drinks-tab" class="tab-content active">
+        <h2>Lista de Drinks</h2>
+        <ul id="drinks-list"></ul>
+    </div>
+
+    <div id="add-drink-tab" class="tab-content">
+        <h2>Agregar un Drink</h2>
+        <div class="drink-form">
+            <input type="text" id="drink-name" placeholder="Nombre del trago">
+            <input type="text" id="drink-description" placeholder="Descripción">
+            <textarea id="drink-ingredients" placeholder='[{"ingredient_id": 2, "amount_ml": 1}, {"ingredient_id": 1, "amount_ml": 2}]'></textarea>
+            <button onclick="addDrink()">Agregar</button>
+        </div>
+    </div>
+
+    <div id="pumps-tab" class="tab-content">
+        <h2>Configurar Pumps</h2>
+        <ul id="pumps-list"></ul>
     </div>
 
     <script>
-        const API_URL = "http://127.0.0.1:8000/drinks/";
-
+        const DRINKS_API = "http://127.0.0.1:8000/drinks/";
+        const PUMPS_API = "http://127.0.0.1:8000/pumps/";
+    
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+            
+            if (tabId === 'drinks-tab') fetchDrinks();
+            if (tabId === 'pumps-tab') fetchPumps();
+        }
+    
         async function fetchDrinks() {
-            const response = await fetch(API_URL);
+            const response = await fetch(DRINKS_API);
             const drinks = await response.json();
             const list = document.getElementById("drinks-list");
             list.innerHTML = "";
@@ -128,53 +153,73 @@
                 list.appendChild(li);
             });
         }
-
+    
+        async function fetchPumps() {
+            const response = await fetch(PUMPS_API);
+            const pumps = await response.json();
+            const list = document.getElementById("pumps-list");
+            list.innerHTML = "";
+    
+            pumps.sort((a, b) => a.id - b.id); // Ordenar los Pumps por ID ascendente
+    
+            pumps.forEach(pump => {
+                const li = document.createElement("li");
+                li.textContent = `Pump ${pump.id}: ${pump.ingredient ? pump.ingredient.name : 'Sin ingrediente asignado'}`;
+                list.appendChild(li);
+            });
+        }
+    
         async function addDrink() {
             const name = document.getElementById("drink-name").value.trim();
             const description = document.getElementById("drink-description").value.trim();
             const ingredientsInput = document.getElementById("drink-ingredients").value.trim();
-
+    
             let ingredients;
             try {
                 ingredients = JSON.parse(ingredientsInput);
+                if (!Array.isArray(ingredients)) {
+                    throw new Error("Los ingredientes deben ser un array.");
+                }
             } catch (error) {
-                alert("Error: Los ingredientes deben estar en formato JSON válido.");
+                alert("Error: Los ingredientes deben estar en formato JSON válido y en un array.");
                 return;
             }
-
-            if (!name || !description || !ingredients) {
+    
+            if (!name || !description || ingredients.length === 0) {
                 alert("Por favor, completa todos los campos.");
                 return;
             }
-
-            const response = await fetch(API_URL, {
+    
+            const response = await fetch(DRINKS_API, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: name,
-                    description: description,
-                    ingredients: ingredients
-                })
+                body: JSON.stringify({ name, description, ingredients })
             });
-
+    
             if (response.ok) {
+                alert("✅ Drink agregado correctamente!");
                 fetchDrinks();
             } else {
-                alert("Error al agregar el drink");
+                alert("❌ Error al agregar el drink");
             }
         }
-
+    
         async function deleteDrink(id) {
-            const response = await fetch(`${API_URL}${id}`, { method: "DELETE" });
-
+            const confirmDelete = confirm("¿Estás seguro de que quieres eliminar este drink?");
+            if (!confirmDelete) return;
+    
+            const response = await fetch(`${DRINKS_API}${id}`, { method: "DELETE" });
+    
             if (response.ok) {
+                alert("🗑️ Drink eliminado correctamente.");
                 fetchDrinks();
             } else {
-                alert("Error al eliminar el drink");
+                alert("❌ Error al eliminar el drink.");
             }
         }
-
+    
         fetchDrinks();
     </script>
+    
 </body>
 </html>

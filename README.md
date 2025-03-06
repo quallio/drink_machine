@@ -15,6 +15,11 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Check using the browser if it is running.
 http://localhost:8000/docs
 
+# Para correr el FRONTEND:
+Ingresar a la carpeta "frontend" y allí ejecutar:
+python3 -m http.server 8080
+
+
 # Insomnia
 Usa Insomnia para pegarle a los distintos endpoints.
 
@@ -35,7 +40,6 @@ psql -U pf -d drinksdb
 psql -U pf -h 192.168.1.44 -d drinksdb
 # Para conectarme desde mi notebook a la Raspberry, usando el server de FastApi, revisar que el .env le pegue a la db de la Raspberry...
 DATABASE_URL=postgresql+asyncpg://pf:pf@192.168.1.44:5432/drinksdb
-
 
 # Ejemplo de como poner los ingredientes en el FE:
 {"ron": 30, "limón": 20, "azúcar": 10}
@@ -159,4 +163,10 @@ SELECT * FROM drink_ingredients;
 SELECT * FROM pumps;
 
 
+# Para agregar un DRINK desde el FrontEnd debes llenar así la parte de INGREDIENTS:
+[
+    {"ingredient_id": 2, "amount_ml": 100},  
+    {"ingredient_id": 1, "amount_ml": 99}
+]
 
+por ejemplo...
