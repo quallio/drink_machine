@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import drinks, pumps
+from app.routes import drinks, pumps, ingredients
 from app.database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,6 +17,8 @@ app.add_middleware(
 # Incluir rutas
 app.include_router(drinks.router)
 app.include_router(pumps.router)
+app.include_router(ingredients.router)
+
 
 @app.get("/")
 def home():

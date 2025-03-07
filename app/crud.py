@@ -6,6 +6,7 @@ from app.schemas import DrinkCreate, IngredientCreate, PumpCreate
 from datetime import datetime
 from fastapi import HTTPException
 
+
 # Obtener lista de Drinks con sus ingredientes
 async def get_drinks(db: AsyncSession):
     result = await db.execute(
@@ -46,6 +47,7 @@ async def create_drink(db: AsyncSession, drink_data: DrinkCreate):
 async def get_ingredients(db: AsyncSession):
     result = await db.execute(select(Ingredient))
     return result.scalars().all()
+
 
 # Crear un nuevo ingrediente
 async def create_ingredient(db: AsyncSession, ingredient_data: IngredientCreate):

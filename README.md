@@ -12,6 +12,9 @@ docker ps (to check if it is running...)
 # Run the FastApi server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+# Run the FE from frontend folder
+python3 -m http.server 8080
+
 # Check using the browser if it is running.
 http://localhost:8000/docs
 
@@ -165,8 +168,8 @@ SELECT * FROM pumps;
 
 # Para agregar un DRINK desde el FrontEnd debes llenar así la parte de INGREDIENTS:
 [
-    {"ingredient_id": 2, "amount_ml": 100},  
-    {"ingredient_id": 1, "amount_ml": 99}
+    {"ingredient_id": 3, "amount_ml": 1001},  
+    {"ingredient_id": 4, "amount_ml": 1122}
 ]
 
 por ejemplo...
