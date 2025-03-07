@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError
 from app.models import Drink, Ingredient, DrinkIngredient, Pump
 from app.schemas import DrinkCreate, IngredientCreate, PumpCreate
 from datetime import datetime
@@ -57,36 +58,42 @@ async def create_ingredient(db: AsyncSession, ingredient_data: IngredientCreate)
     await db.refresh(ingredient)
     return ingredient
 
+
 # Obtener la configuración actual de las bombas
 async def get_pumps(db: AsyncSession):
     result = await db.execute(select(Pump).options(joinedload(Pump.ingredient)))
     return result.scalars().all()
 
+
+
 # Configurar un ingrediente en una bomba
 async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
-    # Verificar si el ingrediente existe en la base de datos
-    ingredient_result = await db.execute(
-        select(Ingredient).where(Ingredient.id == pump_data.ingredient_id)
+    existing_pump = await db.execute(
+        select(Pump).where(Pump.ingredient_id == pump_data.ingredient_id)
     )
-    ingredient = ingredient_result.scalars().first()
+    existing_pump = existing_pump.scalars().first()
 
-    if not ingredient:
-        raise HTTPException(status_code=400, detail="El ingrediente especificado no existe.")
+    if existing_pump and existing_pump.id != pump_id:
+        raise HTTPException(status_code=400, detail="Este ingrediente ya está asignado a otro Pump.")
 
-    # Buscar la bomba por ID con el ingrediente relacionado
-    result = await db.execute(
-        select(Pump).options(joinedload(Pump.ingredient)).where(Pump.id == pump_id)
-    )
-    pump = result.scalars().first()
+    try:
+        # Asegurar que cargamos los datos relacionados
+        result = await db.execute(
+            select(Pump).options(joinedload(Pump.ingredient)).where(Pump.id == pump_id)
+        )
+        pump = result.scalars().first()
 
-    if not pump:
-        raise HTTPException(status_code=404, detail="La bomba especificada no existe.")
+        if not pump:
+            raise HTTPException(status_code=404, detail="Pump no encontrado.")
 
-    # Actualizar el ingredient_id y el assigned_at
-    pump.ingredient_id = pump_data.ingredient_id
-    pump.assigned_at = datetime.utcnow()
+        pump.ingredient_id = pump_data.ingredient_id
+        pump.assigned_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(pump)  # Actualiza los datos en SQLAlchemy
 
-    await db.commit()
-    await db.refresh(pump)  # Asegurar que el objeto actualizado se refleje correctamente
+        return pump  # Ahora devuelve el objeto con los datos cargados correctamente
 
-    return pump
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="No se puede asignar este ingrediente a otro Pump.")

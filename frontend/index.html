@@ -186,21 +186,32 @@
         }
     
         async function updatePump(pumpId) {
-            const selectedIngredientId = document.getElementById(`pump-${pumpId}`).value;
-    
+            const selectElement = document.getElementById(`pump-${pumpId}`);
+        
+            if (!selectElement) {
+                alert(`Error: No se encontró el select para el Pump ${pumpId}`);
+                return;
+            }
+        
+            const ingredientId = parseInt(selectElement.value);
+        
             const response = await fetch(`${PUMPS_API}${pumpId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ingredient_id: parseInt(selectedIngredientId) })
+                body: JSON.stringify({ ingredient_id: ingredientId })
             });
-    
-            if (response.ok) {
-                alert(`✅ Pump ${pumpId} actualizado correctamente.`);
-                fetchPumps();
+        
+            const result = await response.json();
+        
+            if (!response.ok) {
+                alert("Error: " + result.detail);
             } else {
-                alert(`❌ Error al actualizar el Pump ${pumpId}.`);
+                alert("✅ Pump actualizado correctamente.");
+                fetchPumps(); // Recargar lista de pumps
             }
         }
+        
+        
     
         async function addDrink() {
             const name = document.getElementById("drink-name").value.trim();
