@@ -126,9 +126,11 @@
     </div>
 
     <script>
-        const DRINKS_API = "http://127.0.0.1:8000/drinks/";
-        const PUMPS_API = "http://127.0.0.1:8000/pumps/";
-        const INGREDIENTS_API = "http://127.0.0.1:8000/ingredients/";
+        const BASE_URL = `http://${window.location.hostname}:8000`;
+        const DRINKS_API = `${BASE_URL}/drinks/`;
+        const PUMPS_API = `${BASE_URL}/pumps/`;
+        const INGREDIENTS_API = `${BASE_URL}/ingredients/`;
+
     
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
