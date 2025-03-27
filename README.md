@@ -12,6 +12,30 @@ docker ps (to check if it is running...)
 # Run the FastApi server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+# Crear el venv e instalar el requirements.txt
+cd drink_machine
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# falla de pyspicopg
+sudo apt update
+sudo apt install -y python3-dev libpq-dev gcc
+
+pip install psycopg2
+
+pip install -r requirements.txt
+
+Para verificar que se instaló bien: 
+pip list | grep psycopg2
+
+# También recordar crear el .env
+DATABASE_URL=postgresql+asyncpg://pf:pf@192.168.1.44:5432/drinksdb
+
+:-)
+
+
+
 # Run the FE from frontend folder
 python3 -m http.server 8080
 
@@ -66,14 +90,13 @@ docker run -d \
 CREATE TABLE drinks (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
-    ingredients JSONB NOT NULL
+    description TEXT
 );
 
 INSERT INTO drinks (name, description, ingredients)
 VALUES 
-('Caipirinha', 'A refreshing Brazilian cocktail.', '{"cachaça": 50, "lime": 30, "sugar": 20}'),
-('Margarita', 'A classic cocktail with tequila.', '{"tequila": 50, "lime": 30, "triple sec": 20}');
+('Caipirinha', 'A refreshing Brazilian cocktail.'),
+('Margarita', 'A classic cocktail with tequila.');
 
 
 SELECT * FROM drinks;
@@ -84,19 +107,13 @@ Body Json para crear un DRINK nuevo:
 
 	{
 		"name": "Margarita new",
-		"description": "Pepe A classic cocktail with tequila.",
-		"ingredients": {
-			"lime": 3022,
-			"tequila": 52120,
-			"triple sec": 2033
-		}
+		"description": "Pepe A classic cocktail with tequila."
 	}
 
 
-Elimina la columna ingredients porque nos damos cuenta que no la usaremos.
+
 
 ALTER TABLE drinks DROP COLUMN IF EXISTS ingredients;
-
 
 
 Crear la tabla ingredients (Lista de ingredientes posibles)
@@ -173,3 +190,10 @@ SELECT * FROM pumps;
 ]
 
 por ejemplo...
+
+
+
+# Para abrir una pestaña del FE en la Raspberry , desde consola:
+
+chromium-browser --noerrdialogs --disable-infobars --kiosk http://localhost:8080
+
