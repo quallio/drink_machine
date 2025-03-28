@@ -151,7 +151,10 @@
                 const li = document.createElement("li");
                 li.innerHTML = `
                     <span><strong>${drink.name}</strong> - ${drink.description}</span>
-                    <button onclick="deleteDrink(${drink.id})">Eliminar</button>
+                    <div>
+                        <button onclick="prepareDrink(${drink.id})">Preparar</button>
+                        <button onclick="deleteDrink(${drink.id})">Eliminar</button>
+                    </div>
                 `;
                 list.appendChild(li);
             });
@@ -265,6 +268,23 @@
         }
     
         fetchDrinks();
+
+        async function prepareDrink(id) {
+            try {
+                const response = await fetch(`${DRINKS_API}prepare/${id}`, { method: "POST" });
+                const data = await response.json();
+        
+                if (response.ok) {
+                    alert(`✅ ${data.message}`);
+                    console.log("Instrucciones:", data.instructions);
+                } else {
+                    alert(`⚠️ Error: ${data.detail}`);
+                }
+            } catch (error) {
+                alert("❌ Error al intentar preparar el drink.");
+                console.error(error);
+            }
+        }        
     </script>    
     
 </body>
