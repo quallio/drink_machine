@@ -36,3 +36,10 @@ async def remove_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
 
     return {"message": "Drink deleted"}
 
+from app.crud import prepare_drink_logic  # Asegurate de importar esto arriba
+
+# Preparar un drink
+@router.post("/prepare/{drink_id}")
+async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
+    return await prepare_drink_logic(db, drink_id)
+

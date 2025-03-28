@@ -97,3 +97,46 @@ async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="No se puede asignar este ingrediente a otro Pump.")
+    
+
+
+# Preparar un trago: verificar disponibilidad de ingredientes
+async def prepare_drink_logic(db: AsyncSession, drink_id: int):
+    # 1. Buscar el drink y sus ingredientes
+    result = await db.execute(
+        select(Drink)
+        .options(joinedload(Drink.ingredients))
+        .where(Drink.id == drink_id)
+    )
+    drink = result.scalar_one_or_none()
+
+    if not drink:
+        raise HTTPException(status_code=404, detail="Drink no encontrado")
+
+    # 2. Obtener las bombas configuradas
+    result = await db.execute(select(Pump))
+    pumps = result.scalars().all()
+    available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
+
+    # 3. Verificar si todos los ingredientes están disponibles
+    missing_ingredients = []
+    for drink_ingredient in drink.ingredients:
+        if drink_ingredient.ingredient_id not in available_ingredient_ids:
+            missing_ingredients.append(drink_ingredient.ingredient_id)
+
+    if missing_ingredients:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
+        )
+
+    # 4. Simular preparación (en el futuro acá van los GPIO)
+    return {
+        "message": f"Preparando el trago: {drink.name}",
+        "instructions": [
+            {
+                "ingredient_id": di.ingredient_id,
+                "amount_ml": di.amount_ml
+            } for di in drink.ingredients
+        ]
+    }
