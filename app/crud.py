@@ -108,7 +108,8 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
         .options(joinedload(Drink.ingredients))
         .where(Drink.id == drink_id)
     )
-    drink = result.scalar_one_or_none()
+    drink = result.unique().scalar_one_or_none()
+
 
     if not drink:
         raise HTTPException(status_code=404, detail="Drink no encontrado")
@@ -117,6 +118,7 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     result = await db.execute(select(Pump))
     pumps = result.scalars().all()
     available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
+
 
     # 3. Verificar si todos los ingredientes están disponibles
     missing_ingredients = []
@@ -140,3 +142,7 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
             } for di in drink.ingredients
         ]
     }
+
+
+
+
