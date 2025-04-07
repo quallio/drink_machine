@@ -209,3 +209,6 @@ journalctl -u drink_machine_frontend.service -f
 # Si no recordás exactamente el nombre, podés filtrar:
 systemctl | grep drink
 (Eso te va a mostrar los servicios que tengan “drink” en el nombre, y vas a ver si están corriendo o fallando.)
+
+# Asi reinicio un servicio, el del BE por ejemplo:
+sudo systemctl restart drink_machine_backend.service
