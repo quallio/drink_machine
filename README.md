@@ -197,3 +197,15 @@ por ejemplo...
 
 chromium-browser --noerrdialogs --disable-infobars --kiosk http://localhost:8080
 
+
+#  Ver si están activos el FE y el BE:
+systemctl status drink_machine_backend.service
+systemctl status drink_machine_frontend.service
+
+# Ver logs en tiempo real (útil para ver errores):
+journalctl -u drink_machine_backend.service -f
+journalctl -u drink_machine_frontend.service -f
+
+# Si no recordás exactamente el nombre, podés filtrar:
+systemctl | grep drink
+(Eso te va a mostrar los servicios que tengan “drink” en el nombre, y vas a ver si están corriendo o fallando.)
