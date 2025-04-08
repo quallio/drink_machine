@@ -12,10 +12,12 @@ import RPi.GPIO as GPIO
 import threading
 import time
 #########################
-LED_PIN = 17
+RED_LED_PIN = 17
+WHITE_LED_PIN = 27
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-GPIO.setup(LED_PIN, GPIO.OUT)
+GPIO.setup(RED_LED_PIN, GPIO.OUT)
+GPIO.setup(WHITE_LED_PIN, GPIO.OUT)
 #########################
 
 
@@ -56,13 +58,16 @@ async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
     return await prepare_drink_logic(db, drink_id)
 
 
-# Encender LED un tiempo x
+# Encender LEDs un tiempo x
 @router.post("/led/{tiempo}")
 def encender_led(tiempo: int):
     def encender_led_durante(t):
-        GPIO.output(LED_PIN, GPIO.HIGH)
+        GPIO.output(RED_LED_PIN, GPIO.HIGH)
         time.sleep(t)
-        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(RED_LED_PIN, GPIO.LOW)
+        GPIO.output(WHITE_LED_PIN, GPIO.HIGH)
+        time.sleep(t*2)
+        GPIO.output(WHITE_LED_PIN, GPIO.LOW)
 
     thread = threading.Thread(target=encender_led_durante, args=(tiempo,))
     thread.start()
