@@ -1,26 +1,25 @@
 from fastapi import FastAPI
-from app.routes import drinks, pumps, ingredients
-from app.database import engine, Base
+from app.routes.drinks import router as drinks_router
+from app.routes.pumps import router as pumps_router
+from app.routes.ingredients import router as ingredients_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Configurar CORS para permitir peticiones desde el frontend
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir cualquier origen (puedes restringirlo luego)
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, DELETE, etc.)
-    allow_headers=["*"],  # Permitir todos los headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Incluir rutas
-app.include_router(drinks.router)
-app.include_router(pumps.router)
-app.include_router(ingredients.router)
-
+# Incluir rutas con alias
+app.include_router(drinks_router)
+app.include_router(pumps_router)
+app.include_router(ingredients_router)
 
 @app.get("/")
 def home():
     return {"message": "Welcome to Drink Machine API!"}
-
