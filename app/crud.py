@@ -8,6 +8,27 @@ from datetime import datetime
 from fastapi import HTTPException
 
 
+###########################
+## PARA PRENDER LED ##
+import RPi.GPIO as GPIO
+import threading
+import time
+#########################
+PUMP_GPIO_MAP = {
+    1: 17,
+    2: 27,
+    3: 23,
+    4: 24
+}
+###########################
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+for pin in PUMP_GPIO_MAP.values():
+    GPIO.setup(pin, GPIO.OUT)
+###########################
+###########################
+
+
 # Obtener lista de Drinks con sus ingredientes
 async def get_drinks(db: AsyncSession):
     result = await db.execute(
@@ -99,7 +120,7 @@ async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
         raise HTTPException(status_code=400, detail="No se puede asignar este ingrediente a otro Pump.")
     
 
-
+"""
 # Preparar un trago: verificar disponibilidad de ingredientes
 async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     # 1. Buscar el drink y sus ingredientes
@@ -142,7 +163,59 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
             } for di in drink.ingredients
         ]
     }
+"""
 
+def activar_bomba(gpio_pin, tiempo):
+    GPIO.output(gpio_pin, GPIO.HIGH)
+    time.sleep(tiempo)
+    GPIO.output(gpio_pin, GPIO.LOW)
 
+async def prepare_drink_logic(db: AsyncSession, drink_id: int):
+    result = await db.execute(
+        select(Drink)
+        .options(joinedload(Drink.ingredients))
+        .where(Drink.id == drink_id)
+    )
+    drink = result.unique().scalar_one_or_none()
+
+    if not drink:
+        raise HTTPException(status_code=404, detail="Drink no encontrado")
+
+    result = await db.execute(select(Pump))
+    pumps = result.scalars().all()
+    available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
+
+    missing_ingredients = []
+    for di in drink.ingredients:
+        if di.ingredient_id not in available_ingredient_ids:
+            missing_ingredients.append(di.ingredient_id)
+
+    if missing_ingredients:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
+        )
+
+    # Mapeo ingrediente -> bomba
+    ingrediente_a_bomba = {pump.ingredient_id: pump.id for pump in pumps if pump.ingredient_id}
+
+    for di in drink.ingredients:
+        bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
+        gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
+        if gpio_pin:
+            tiempo = di.amount_ml * 0.1  # 10 ml → 1s (ajustá si querés)
+            threading.Thread(target=activar_bomba, args=(gpio_pin, tiempo)).start()
+
+    return {
+        "message": f"Preparando el trago: {drink.name}",
+        "instructions": [
+            {
+                "ingredient_id": di.ingredient_id,
+                "amount_ml": di.amount_ml,
+                "pump": ingrediente_a_bomba.get(di.ingredient_id),
+                "gpio_pin": PUMP_GPIO_MAP.get(ingrediente_a_bomba.get(di.ingredient_id))
+            } for di in drink.ingredients
+        ]
+    }
 
 

@@ -58,7 +58,7 @@ async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
     return await prepare_drink_logic(db, drink_id)
 
 
-# Encender LEDs un tiempo x
+# Encender 2 LEDs un tiempo x y 2x respectivamente. :-) Just testing.
 @router.post("/led/{tiempo}")
 def encender_led(tiempo: int):
     def encender_led_durante(t):
