@@ -196,15 +196,20 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
             detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
         )
 
-    # Mapeo ingrediente -> bomba
     ingrediente_a_bomba = {pump.ingredient_id: pump.id for pump in pumps if pump.ingredient_id}
 
-    for di in drink.ingredients:
-        bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
-        gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
-        if gpio_pin:
-            tiempo = di.amount_ml * 0.1  # 10 ml → 1s (ajustá si querés)
-            threading.Thread(target=activar_bomba, args=(gpio_pin, tiempo)).start()
+    # Ordenar los ingredientes por cantidad ASC (el más chico primero)
+    sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.amount_ml)
+
+    def preparar_secuencial():
+        for di in sorted_ingredients:
+            bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
+            gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
+            if gpio_pin:
+                tiempo = di.amount_ml * 0.1
+                activar_bomba(gpio_pin, tiempo)
+
+    threading.Thread(target=preparar_secuencial).start()
 
     return {
         "message": f"Preparando el trago: {drink.name}",
@@ -214,8 +219,6 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
                 "amount_ml": di.amount_ml,
                 "pump": ingrediente_a_bomba.get(di.ingredient_id),
                 "gpio_pin": PUMP_GPIO_MAP.get(ingrediente_a_bomba.get(di.ingredient_id))
-            } for di in drink.ingredients
+            } for di in sorted_ingredients
         ]
     }
-
-
