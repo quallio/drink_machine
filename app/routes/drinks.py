@@ -12,12 +12,18 @@ import RPi.GPIO as GPIO
 import threading
 import time
 #########################
-RED_LED_PIN = 17
-WHITE_LED_PIN = 27
+# GPIO 17, 27, 23 y 24 --> bombas 1, 2, 3 y 4
+#########################
+LED_PIN_17 = 17
+LED_PIN_27 = 27
+LED_PIN_23 = 23
+LED_PIN_24 = 24
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-GPIO.setup(RED_LED_PIN, GPIO.OUT)
-GPIO.setup(WHITE_LED_PIN, GPIO.OUT)
+GPIO.setup(LED_PIN_17, GPIO.OUT)
+GPIO.setup(LED_PIN_27, GPIO.OUT)
+GPIO.setup(LED_PIN_23, GPIO.OUT)
+GPIO.setup(LED_PIN_24, GPIO.OUT)
 #########################
 
 
@@ -58,17 +64,25 @@ async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
     return await prepare_drink_logic(db, drink_id)
 
 
-# Encender 2 LEDs un tiempo x y 2x respectivamente. :-) Just testing.
+# Encender los 4 leds. Just testing.
 @router.post("/led/{tiempo}")
 def encender_led(tiempo: int):
-    def encender_led_durante(t):
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
+    def encender_leds_durante(t):
+        GPIO.output(LED_PIN_17, GPIO.HIGH)
         time.sleep(t)
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        GPIO.output(WHITE_LED_PIN, GPIO.HIGH)
-        time.sleep(t*2)
-        GPIO.output(WHITE_LED_PIN, GPIO.LOW)
+        GPIO.output(LED_PIN_17, GPIO.LOW)
+        GPIO.output(LED_PIN_27, GPIO.HIGH)
+        time.sleep(t)
+        GPIO.output(LED_PIN_27, GPIO.LOW)
+        time.sleep(t)
+        GPIO.output(LED_PIN_23, GPIO.HIGH)
+        time.sleep(t)
+        GPIO.output(LED_PIN_23, GPIO.LOW)
+        GPIO.output(LED_PIN_24, GPIO.HIGH)
+        time.sleep(t)
+        GPIO.output(LED_PIN_24, GPIO.LOW)
 
-    thread = threading.Thread(target=encender_led_durante, args=(tiempo,))
+    thread = threading.Thread(target=encender_leds_durante, args=(tiempo,))
     thread.start()
     return {"mensaje": f"LED encendido por {tiempo} segundos"}
+
