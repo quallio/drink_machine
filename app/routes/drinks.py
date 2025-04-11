@@ -74,7 +74,6 @@ def encender_led(tiempo: int):
         GPIO.output(LED_PIN_27, GPIO.HIGH)
         time.sleep(t)
         GPIO.output(LED_PIN_27, GPIO.LOW)
-        time.sleep(t)
         GPIO.output(LED_PIN_23, GPIO.HIGH)
         time.sleep(t)
         GPIO.output(LED_PIN_23, GPIO.LOW)
