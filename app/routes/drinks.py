@@ -14,17 +14,20 @@ import time
 #########################
 # GPIO 17, 27, 23 y 24 --> bombas 1, 2, 3 y 4
 #########################
-LED_PIN_17 = 17
-LED_PIN_27 = 27
-LED_PIN_23 = 23
-LED_PIN_24 = 24
+#########################
+PUMP_LED_PINS = {
+    1: 17,
+    2: 27,
+    3: 23,
+    4: 24
+}
+#######################################
+# Setup GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
-GPIO.setup(LED_PIN_17, GPIO.OUT)
-GPIO.setup(LED_PIN_27, GPIO.OUT)
-GPIO.setup(LED_PIN_23, GPIO.OUT)
-GPIO.setup(LED_PIN_24, GPIO.OUT)
-#########################
+for pin in PUMP_LED_PINS.values():
+    GPIO.setup(pin, GPIO.OUT)
+#######################################
 
 
 
@@ -64,24 +67,15 @@ async def prepare_drink(drink_id: int, db: AsyncSession = Depends(get_db)):
     return await prepare_drink_logic(db, drink_id)
 
 
-# Encender los 4 leds. Just testing.
-@router.post("/led/{tiempo}")
-def encender_led(tiempo: int):
-    def encender_leds_durante(t):
-        GPIO.output(LED_PIN_17, GPIO.HIGH)
-        time.sleep(t)
-        GPIO.output(LED_PIN_17, GPIO.LOW)
-        GPIO.output(LED_PIN_27, GPIO.HIGH)
-        time.sleep(t)
-        GPIO.output(LED_PIN_27, GPIO.LOW)
-        GPIO.output(LED_PIN_23, GPIO.HIGH)
-        time.sleep(t)
-        GPIO.output(LED_PIN_23, GPIO.LOW)
-        GPIO.output(LED_PIN_24, GPIO.HIGH)
-        time.sleep(t)
-        GPIO.output(LED_PIN_24, GPIO.LOW)
+# Testea las salidas (los 4 leds)
+@router.post("/test-leds/{tiempo}")
+def test_leds(tiempo: int):
+    def encender_leds():
+        for pump_id in sorted(PUMP_LED_PINS):
+            GPIO.output(PUMP_LED_PINS[pump_id], GPIO.HIGH)
+            time.sleep(tiempo)
+            GPIO.output(PUMP_LED_PINS[pump_id], GPIO.LOW)
 
-    thread = threading.Thread(target=encender_leds_durante, args=(tiempo,))
+    thread = threading.Thread(target=encender_leds)
     thread.start()
-    return {"mensaje": f"LED encendido por {tiempo} segundos"}
-
+    return {"mensaje": f"Probando LEDs por {tiempo} segundos cada uno"}
