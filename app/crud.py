@@ -29,13 +29,27 @@ for pin in PUMP_GPIO_MAP.values():
 ###########################
 
 
-# Obtener lista de Drinks con sus ingredientes
+
+# Obtener lista de Drinks con sus ingredientes y si están available para ser preparados o no.
 async def get_drinks(db: AsyncSession):
+    # Obtener todos los drinks con sus ingredientes
     result = await db.execute(
         select(Drink)
         .options(joinedload(Drink.ingredients).joinedload(DrinkIngredient.ingredient))
     )
-    return result.unique().scalars().all()  # <--- Agregamos .unique()
+    drinks = result.unique().scalars().all()
+
+    # Obtener ingredientes que están en las bombas
+    pump_result = await db.execute(select(Pump))
+    pumps = pump_result.scalars().all()
+    available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
+
+    # Agregar flag is_available a cada drink
+    for drink in drinks:
+        ingredient_ids = {di.ingredient_id for di in drink.ingredients}
+        drink.is_available = ingredient_ids.issubset(available_ingredient_ids)
+
+    return drinks
 
 
 # Crear un nuevo Drink con ingredientes asociados

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
+
 # Esquema para Ingrediente
 class IngredientBase(BaseModel):
     name: str
@@ -42,6 +43,7 @@ class DrinkCreate(DrinkBase):
 class DrinkResponse(DrinkBase):
     id: int
     ingredients: List[DrinkIngredientResponse]
+    is_available: Optional[bool] = None  # <-- Nuevo campo
 
     class Config:
         from_attributes = True

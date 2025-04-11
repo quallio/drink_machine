@@ -149,17 +149,27 @@
             list.innerHTML = "";
             drinks.forEach(drink => {
                 const li = document.createElement("li");
+            
+                const statusText = drink.is_available
+                    ? '<span style="color: green;">Disponible</span>'
+                    : '<span style="color: red;">No disponible</span>';
+            
                 li.innerHTML = `
-                    <span><strong>${drink.name}</strong> - ${drink.description}</span>
+                    <div style="flex-grow: 1; text-align: left;">
+                        <strong>${drink.name}</strong> - ${drink.description} <br/>
+                        ${statusText}
+                    </div>
                     <div>
-                        <button onclick="prepareDrink(${drink.id})">Preparar</button>
+                        <button onclick="prepareDrink(${drink.id})" ${!drink.is_available ? "disabled" : ""}>
+                            Preparar
+                        </button>
                         <button onclick="deleteDrink(${drink.id})">Eliminar</button>
                     </div>
                 `;
                 list.appendChild(li);
             });
         }
-    
+
         async function fetchPumps() {
             const response = await fetch(PUMPS_API);
             const pumps = await response.json();
