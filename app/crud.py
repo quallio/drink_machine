@@ -31,7 +31,7 @@ for pin in PUMP_GPIO_MAP.values():
 
 
 # Obtener lista de Drinks con sus ingredientes y si están available para ser preparados o no.
-async def get_drinks(db: AsyncSession):
+async def get_drinks_with_availability(db: AsyncSession):
     # Obtener todos los drinks con sus ingredientes
     result = await db.execute(
         select(Drink)

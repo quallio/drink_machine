@@ -212,3 +212,16 @@ systemctl | grep drink
 
 # Asi reinicio un servicio, el del BE por ejemplo:
 sudo systemctl restart drink_machine_backend.service
+
+#  Verificar si Uvicorn está corriendo y escuchando el puerto 8000-.. corro en la RASPBERRY:
+sudo lsof -i -P -n | grep LISTEN
+
+Esto sirve para ver qué puertos escucha las raspberry--- repuesta, por ejemplo:
+
+
+python3    608       pf    3u  IPv4    911      0t0  TCP *:8080 (LISTEN)
+sshd       623     root    3u  IPv4   4859      0t0  TCP *:22 (LISTEN)
+sshd       623     root    4u  IPv6   4862      0t0  TCP *:22 (LISTEN)
+postgres   645 postgres    5u  IPv4   6395      0t0  TCP *:5432 (LISTEN)
+postgres   645 postgres    6u  IPv6   6396      0t0  TCP *:5432 (LISTEN)
+
