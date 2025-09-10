@@ -225,3 +225,7 @@ sshd       623     root    4u  IPv6   4862      0t0  TCP *:22 (LISTEN)
 postgres   645 postgres    5u  IPv4   6395      0t0  TCP *:5432 (LISTEN)
 postgres   645 postgres    6u  IPv6   6396      0t0  TCP *:5432 (LISTEN)
 
+# Para buscar "chromium" en general:
+
+pf@raspberrypi:~ $ grep -Ri "chromium" /etc/xdg/ /home/pf/.config/ /etc/lightdm/ 2>/dev/null
+
