@@ -6,7 +6,7 @@
     <title>Drink Machine</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
             background-color: #f8f9fa;
             color: #333;
             max-width: 800px;
@@ -63,37 +63,6 @@
             border-radius: 5px;
             box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
         }
-
-        .drink-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .drink-form input, .drink-form textarea, .drink-form button {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-        }
-
-        .drink-form button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .drink-form button:hover {
-            background-color: #218838;
-        }
     </style>
 </head>
 <body>
@@ -101,8 +70,7 @@
 
     <div class="tabs">
         <button class="tab-button active" onclick="showTab('drinks-tab')">Lista de Drinks</button>
-        <button class="tab-button" onclick="showTab('add-drink-tab')">Agregar Drink</button>
-        <button class="tab-button" onclick="showTab('pumps-tab')">Configurar Pumps</button>
+        <button class="tab-button" onclick="showTab('pumps-tab')">Configurar Bombas</button>
     </div>
 
     <div id="drinks-tab" class="tab-content active">
@@ -110,18 +78,8 @@
         <ul id="drinks-list"></ul>
     </div>
 
-    <div id="add-drink-tab" class="tab-content">
-        <h2>Agregar un Drink</h2>
-        <div class="drink-form">
-            <input type="text" id="drink-name" placeholder="Nombre del trago">
-            <input type="text" id="drink-description" placeholder="Descripción">
-            <textarea id="drink-ingredients" placeholder='[{"ingredient_id": 2, "amount_ml": 1}, {"ingredient_id": 1, "amount_ml": 2}]'></textarea>
-            <button onclick="addDrink()">Agregar</button>
-        </div>
-    </div>
-
     <div id="pumps-tab" class="tab-content">
-        <h2>Configurar Pumps</h2>
+        <h2>Configurar Bombas</h2>
         <ul id="pumps-list"></ul>
     </div>
 
@@ -131,17 +89,16 @@
         const PUMPS_API = `${BASE_URL}/pumps/`;
         const INGREDIENTS_API = `${BASE_URL}/ingredients/`;
 
-    
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
-    
+
             if (tabId === 'drinks-tab') fetchDrinks();
             if (tabId === 'pumps-tab') fetchPumps();
         }
-    
+
         async function fetchDrinks() {
             const response = await fetch(DRINKS_API);
             const drinks = await response.json();
@@ -176,13 +133,13 @@
             const ingredients = await fetchIngredients();
             const list = document.getElementById("pumps-list");
             list.innerHTML = "";
-    
-            pumps.sort((a, b) => a.id - b.id); // Ordenar los Pumps por ID ascendente
-    
+
+            pumps.sort((a, b) => a.id - b.id);
+
             pumps.forEach(pump => {
                 const li = document.createElement("li");
                 li.innerHTML = `
-                    <label for="pump-${pump.id}">Pump ${pump.id}:</label>
+                    <label for="pump-${pump.id}">Bomba ${pump.id}:</label>
                     <select id="pump-${pump.id}">
                         ${ingredients.map(ing => `
                             <option value="${ing.id}" ${pump.ingredient && pump.ingredient.id === ing.id ? "selected" : ""}>
@@ -194,17 +151,17 @@
                 list.appendChild(li);
             });
         }
-    
+
         async function fetchIngredients() {
             const response = await fetch(INGREDIENTS_API);
             return await response.json();
         }
-    
+
         async function updatePump(pumpId) {
             const selectElement = document.getElementById(`pump-${pumpId}`);
         
             if (!selectElement) {
-                alert(`Error: No se encontró el select para el Pump ${pumpId}`);
+                alert(`Error: No se encontró el select para la Bomba ${pumpId}`);
                 return;
             }
         
@@ -221,54 +178,17 @@
             if (!response.ok) {
                 alert("Error: " + result.detail);
             } else {
-                alert("✅ Pump actualizado correctamente.");
-                fetchPumps(); // Recargar lista de pumps
+                alert("✅ Bomba actualizada correctamente.");
+                fetchPumps();
             }
         }
-        
-        
-    
-        async function addDrink() {
-            const name = document.getElementById("drink-name").value.trim();
-            const description = document.getElementById("drink-description").value.trim();
-            const ingredientsInput = document.getElementById("drink-ingredients").value.trim();
-    
-            let ingredients;
-            try {
-                ingredients = JSON.parse(ingredientsInput);
-                if (!Array.isArray(ingredients)) {
-                    throw new Error("Los ingredientes deben ser un array.");
-                }
-            } catch (error) {
-                alert("Error: Los ingredientes deben estar en formato JSON válido y en un array.");
-                return;
-            }
-    
-            if (!name || !description || ingredients.length === 0) {
-                alert("Por favor, completa todos los campos.");
-                return;
-            }
-    
-            const response = await fetch(DRINKS_API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, description, ingredients })
-            });
-    
-            if (response.ok) {
-                alert("✅ Drink agregado correctamente!");
-                fetchDrinks();
-            } else {
-                alert("❌ Error al agregar el drink");
-            }
-        }
-    
+
         async function deleteDrink(id) {
             const confirmDelete = confirm("¿Estás seguro de que quieres eliminar este drink?");
             if (!confirmDelete) return;
-    
+
             const response = await fetch(`${DRINKS_API}${id}`, { method: "DELETE" });
-    
+
             if (response.ok) {
                 alert("🗑️ Drink eliminado correctamente.");
                 fetchDrinks();
@@ -276,14 +196,12 @@
                 alert("❌ Error al eliminar el drink.");
             }
         }
-    
-        fetchDrinks();
 
         async function prepareDrink(id) {
             try {
                 const response = await fetch(`${DRINKS_API}prepare/${id}`, { method: "POST" });
                 const data = await response.json();
-        
+
                 if (response.ok) {
                     alert(`✅ ${data.message}`);
                     console.log("Instrucciones:", data.instructions);
@@ -294,8 +212,9 @@
                 alert("❌ Error al intentar preparar el drink.");
                 console.error(error);
             }
-        }        
+        }
+
+        fetchDrinks();
     </script>    
-    
 </body>
 </html>
