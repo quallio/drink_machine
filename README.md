@@ -68,6 +68,8 @@ psql -U pf -h 192.168.1.44 -d drinksdb
 # Para conectarme desde mi notebook a la Raspberry, usando el server de FastApi, revisar que el .env le pegue a la db de la Raspberry...
 DATABASE_URL=postgresql+asyncpg://pf:pf@192.168.1.44:5432/drinksdb
 
+DATABASE_URL="postgresql+asyncpg://pf:pf@127.0.0.1:5432/drinksdb"
+
 # Ejemplo de como poner los ingredientes en el FE:
 {"ron": 30, "limón": 20, "azúcar": 10}
 
