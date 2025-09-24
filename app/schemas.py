@@ -1,7 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
-
 
 # Esquema para Ingrediente
 class IngredientBase(BaseModel):
@@ -17,10 +16,11 @@ class IngredientResponse(IngredientBase):
     class Config:
         from_attributes = True
 
+
 # Esquema para la relación Drink - Ingredients
 class DrinkIngredientBase(BaseModel):
     ingredient_id: int
-    amount_ml: int
+    proportion: float = Field(..., ge=0, le=1, description="Proporción entre 0 y 1")
 
 class DrinkIngredientCreate(DrinkIngredientBase):
     pass
@@ -31,6 +31,7 @@ class DrinkIngredientResponse(DrinkIngredientBase):
 
     class Config:
         from_attributes = True
+
 
 # Esquema para Drink (Trago)
 class DrinkBase(BaseModel):
@@ -43,10 +44,11 @@ class DrinkCreate(DrinkBase):
 class DrinkResponse(DrinkBase):
     id: int
     ingredients: List[DrinkIngredientResponse]
-    is_available: Optional[bool] = None  # <-- Nuevo campo
+    is_available: Optional[bool] = None  # <-- Campo opcional agregado
 
     class Config:
         from_attributes = True
+
 
 # Esquema para Pumps (Bombas)
 class PumpBase(BaseModel):
@@ -57,7 +59,7 @@ class PumpCreate(PumpBase):
 
 class PumpResponse(PumpBase):
     id: int
-    assigned_at: datetime  # Cambia a datetime
+    assigned_at: datetime
     ingredient: Optional[IngredientResponse]
 
     class Config:

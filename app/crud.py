@@ -7,7 +7,6 @@ from app.schemas import DrinkCreate, IngredientCreate, PumpCreate
 from datetime import datetime
 from fastapi import HTTPException
 
-
 ###########################
 ## PARA PRENDER LED ##
 import RPi.GPIO as GPIO
@@ -26,25 +25,24 @@ GPIO.setwarnings(False)
 for pin in PUMP_GPIO_MAP.values():
     GPIO.setup(pin, GPIO.OUT)
 ###########################
-###########################
 
+# Constantes de calibración
+VOLUME_PER_DRINK = 300   # ml por vaso estándar
+FLOW_RATE = 300 / 9      # ml/seg (≈33.33 ml/s)
 
 
 # Obtener lista de Drinks con sus ingredientes y si están available para ser preparados o no.
 async def get_drinks_with_availability(db: AsyncSession):
-    # Obtener todos los drinks con sus ingredientes
     result = await db.execute(
         select(Drink)
         .options(joinedload(Drink.ingredients).joinedload(DrinkIngredient.ingredient))
     )
     drinks = result.unique().scalars().all()
 
-    # Obtener ingredientes que están en las bombas
     pump_result = await db.execute(select(Pump))
     pumps = pump_result.scalars().all()
     available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
 
-    # Agregar flag is_available a cada drink
     for drink in drinks:
         ingredient_ids = {di.ingredient_id for di in drink.ingredients}
         drink.is_available = ingredient_ids.issubset(available_ingredient_ids)
@@ -59,18 +57,17 @@ async def create_drink(db: AsyncSession, drink_data: DrinkCreate):
     await db.commit()
     await db.refresh(drink)
 
-    # Agregar los ingredientes a drink_ingredients
+    # Agregar los ingredientes con proporciones
     for ingredient_data in drink_data.ingredients:
         drink_ingredient = DrinkIngredient(
             drink_id=drink.id,
             ingredient_id=ingredient_data.ingredient_id,
-            amount_ml=ingredient_data.amount_ml
+            proportion=ingredient_data.proportion  # 🔹 antes era amount_ml
         )
         db.add(drink_ingredient)
 
     await db.commit()
 
-    # 🔹 IMPORTANTE: Volvemos a obtener el objeto `Drink` con `joinedload()`
     result = await db.execute(
         select(Drink)
         .options(joinedload(Drink.ingredients).joinedload(DrinkIngredient.ingredient))
@@ -100,7 +97,6 @@ async def get_pumps(db: AsyncSession):
     return result.scalars().all()
 
 
-
 # Configurar un ingrediente en una bomba
 async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
     existing_pump = await db.execute(
@@ -112,7 +108,6 @@ async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
         raise HTTPException(status_code=400, detail="Este ingrediente ya está asignado a otro Pump.")
 
     try:
-        # Asegurar que cargamos los datos relacionados
         result = await db.execute(
             select(Pump).options(joinedload(Pump.ingredient)).where(Pump.id == pump_id)
         )
@@ -125,17 +120,22 @@ async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
         pump.assigned_at = datetime.utcnow()
         
         await db.commit()
-        await db.refresh(pump)  # Actualiza los datos en SQLAlchemy
+        await db.refresh(pump)
 
-        return pump  # Ahora devuelve el objeto con los datos cargados correctamente
+        return pump
 
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="No se puede asignar este ingrediente a otro Pump.")
-    
 
-"""
-# Preparar un trago: verificar disponibilidad de ingredientes
+
+def activar_bomba(gpio_pin, tiempo):
+    GPIO.output(gpio_pin, GPIO.HIGH)
+    time.sleep(tiempo)
+    GPIO.output(gpio_pin, GPIO.LOW)
+
+
+# Preparar un trago con proporciones (secuencial, de menor a mayor)
 async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     # 1. Buscar el drink y sus ingredientes
     result = await db.execute(
@@ -145,7 +145,6 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     )
     drink = result.unique().scalar_one_or_none()
 
-
     if not drink:
         raise HTTPException(status_code=404, detail="Drink no encontrado")
 
@@ -154,51 +153,7 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     pumps = result.scalars().all()
     available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
 
-
     # 3. Verificar si todos los ingredientes están disponibles
-    missing_ingredients = []
-    for drink_ingredient in drink.ingredients:
-        if drink_ingredient.ingredient_id not in available_ingredient_ids:
-            missing_ingredients.append(drink_ingredient.ingredient_id)
-
-    if missing_ingredients:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
-        )
-
-    # 4. Simular preparación (en el futuro acá van los GPIO)
-    return {
-        "message": f"Preparando el trago: {drink.name}",
-        "instructions": [
-            {
-                "ingredient_id": di.ingredient_id,
-                "amount_ml": di.amount_ml
-            } for di in drink.ingredients
-        ]
-    }
-"""
-
-def activar_bomba(gpio_pin, tiempo):
-    GPIO.output(gpio_pin, GPIO.HIGH)
-    time.sleep(tiempo)
-    GPIO.output(gpio_pin, GPIO.LOW)
-
-async def prepare_drink_logic(db: AsyncSession, drink_id: int):
-    result = await db.execute(
-        select(Drink)
-        .options(joinedload(Drink.ingredients))
-        .where(Drink.id == drink_id)
-    )
-    drink = result.unique().scalar_one_or_none()
-
-    if not drink:
-        raise HTTPException(status_code=404, detail="Drink no encontrado")
-
-    result = await db.execute(select(Pump))
-    pumps = result.scalars().all()
-    available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
-
     missing_ingredients = []
     for di in drink.ingredients:
         if di.ingredient_id not in available_ingredient_ids:
@@ -210,17 +165,20 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
             detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
         )
 
+    # 4. Mapeo ingrediente → bomba
     ingrediente_a_bomba = {pump.ingredient_id: pump.id for pump in pumps if pump.ingredient_id}
 
-    # Ordenar los ingredientes por cantidad ASC (el más chico primero)
-    sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.amount_ml)
+    # 5. Ordenar por proporción ascendente (menos cantidad primero)
+    sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.proportion)
 
+    # 6. Preparar secuencialmente (uno tras otro)
     def preparar_secuencial():
         for di in sorted_ingredients:
             bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
             gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
             if gpio_pin:
-                tiempo = di.amount_ml * 0.1
+                ml = di.proportion * VOLUME_PER_DRINK
+                tiempo = ml / FLOW_RATE
                 activar_bomba(gpio_pin, tiempo)
 
     threading.Thread(target=preparar_secuencial).start()
@@ -230,7 +188,9 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
         "instructions": [
             {
                 "ingredient_id": di.ingredient_id,
-                "amount_ml": di.amount_ml,
+                "proportion": di.proportion,
+                "ml": di.proportion * VOLUME_PER_DRINK,
+                "time_s": (di.proportion * VOLUME_PER_DRINK) / FLOW_RATE,
                 "pump": ingrediente_a_bomba.get(di.ingredient_id),
                 "gpio_pin": PUMP_GPIO_MAP.get(ingrediente_a_bomba.get(di.ingredient_id))
             } for di in sorted_ingredients
