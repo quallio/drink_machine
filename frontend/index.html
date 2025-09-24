@@ -1,223 +1,203 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drink Machine</title>
-    <style>
-        body {
-            font-family: Arial, "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #007bff;
-        }
-
-        .tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab-button {
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            background-color: #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-
-        .tab-button.active {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        li {
-            background: #fff;
-            padding: 10px;
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 5px;
-            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Drink Machine</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #333;
+      color: white;
+      padding: 15px;
+    }
+    header img {
+      height: 40px;
+      margin-right: 15px;
+    }
+    header h1 {
+      font-size: 28px;
+      margin: 0;
+    }
+    nav {
+      display: flex;
+      background: #444;
+      color: white;
+      padding: 10px;
+      justify-content: center;
+      gap: 40px;
+    }
+    nav button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    nav button:hover { text-decoration: underline; }
+    .tab { display: none; padding: 20px; }
+    .active { display: block; }
+    .drink-card {
+      background: white;
+      padding: 20px;
+      margin: 10px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .drink-card.unavailable { opacity: 0.4; cursor: not-allowed; }
+    .pumps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .pump-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .pump-card:hover { background: #e6f0ff; }
+    .modal { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto; text-align: center; }
+    .ingredients { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .ingredient-btn { font-size: 22px; padding: 20px; min-width: 180px; border: none; border-radius: 10px; background: #3498db; color: white; cursor: pointer; }
+    .ingredient-btn:hover { background: #2980b9; }
+  </style>
 </head>
 <body>
-    <h1>
-    Drink Machine 
-    <img src="cocktail.svg" alt="🍹" style="height:1.5em; vertical-align:middle;">
-    </h1>
+  <!-- Header con logo -->
+  <header>
+    <img src="cocktail.svg" alt="Cocktail">
+    <h1>Drink Machine</h1>
+  </header>
 
-    <div class="tabs">
-        <button class="tab-button active" onclick="showTab('drinks-tab')">Lista de Drinks</button>
-        <button class="tab-button" onclick="showTab('pumps-tab')">Configurar Bombas</button>
+  <!-- Navegación -->
+  <nav>
+    <button onclick="showTab('drinks')">Drinks</button>
+    <button onclick="showTab('pumps')">Configurar Bombas</button>
+  </nav>
+
+  <!-- Pantalla de Drinks -->
+  <div id="drinks" class="tab active">
+    <h2>Lista de Drinks</h2>
+    <div id="drinks-list"></div>
+  </div>
+
+  <!-- Pantalla de Bombas -->
+  <div id="pumps" class="tab">
+    <h2>Bombas</h2>
+    <div class="pumps">
+      <div class="pump-card" onclick="openModal(1)">Pump 1<br><span id="pump-1-ingredient">...</span></div>
+      <div class="pump-card" onclick="openModal(2)">Pump 2<br><span id="pump-2-ingredient">...</span></div>
+      <div class="pump-card" onclick="openModal(3)">Pump 3<br><span id="pump-3-ingredient">...</span></div>
+      <div class="pump-card" onclick="openModal(4)">Pump 4<br><span id="pump-4-ingredient">...</span></div>
     </div>
+  </div>
 
-    <div id="drinks-tab" class="tab-content active">
-        <h2>Lista de Drinks</h2>
-        <ul id="drinks-list"></ul>
+  <!-- Modal ingredientes -->
+  <div id="ingredient-modal" class="modal">
+    <div class="modal-content">
+      <h2>Seleccionar Ingrediente</h2>
+      <div id="ingredients-list" class="ingredients"></div>
+      <button onclick="closeModal()">Cerrar</button>
     </div>
+  </div>
 
-    <div id="pumps-tab" class="tab-content">
-        <h2>Configurar Bombas</h2>
-        <ul id="pumps-list"></ul>
-    </div>
+  <script>
+    let ingredients = [];
+    let selectedPump = null;
 
-    <script>
-        const BASE_URL = `http://${window.location.hostname}:8000`;
-        const DRINKS_API = `${BASE_URL}/drinks/`;
-        const PUMPS_API = `${BASE_URL}/pumps/`;
-        const INGREDIENTS_API = `${BASE_URL}/ingredients/`;
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'drinks') loadDrinks();
+      if (id === 'pumps') loadPumps();
+    }
 
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    // 🚀 DRINKS
+    async function loadDrinks() {
+      const resp = await fetch("/drinks");
+      const drinks = await resp.json();
+      const list = document.getElementById("drinks-list");
+      list.innerHTML = "";
 
-            if (tabId === 'drinks-tab') fetchDrinks();
-            if (tabId === 'pumps-tab') fetchPumps();
+      // disponibles primero
+      drinks.sort((a, b) => (b.is_available === true) - (a.is_available === true));
+
+      drinks.forEach(drink => {
+        const card = document.createElement("div");
+        card.className = "drink-card" + (drink.is_available ? "" : " unavailable");
+        card.innerText = drink.name;
+        if (drink.is_available) {
+          card.onclick = () => prepareDrink(drink.id);
         }
+        list.appendChild(card);
+      });
+    }
 
-        async function fetchDrinks() {
-            const response = await fetch(DRINKS_API);
-            const drinks = await response.json();
-            const list = document.getElementById("drinks-list");
-            list.innerHTML = "";
-            drinks.forEach(drink => {
-                const li = document.createElement("li");
-            
-                const statusText = drink.is_available
-                    ? '<span style="color: green;">Disponible</span>'
-                    : '<span style="color: red;">No disponible</span>';
-            
-                li.innerHTML = `
-                    <div style="flex-grow: 1; text-align: left;">
-                        <strong>${drink.name}</strong> - ${drink.description} <br/>
-                        ${statusText}
-                    </div>
-                    <div>
-                        <button onclick="prepareDrink(${drink.id})" ${!drink.is_available ? "disabled" : ""}>
-                            Preparar
-                        </button>
-                        <button onclick="deleteDrink(${drink.id})">Eliminar</button>
-                    </div>
-                `;
-                list.appendChild(li);
-            });
-        }
+    async function prepareDrink(id) {
+      const resp = await fetch(`/drinks/${id}/prepare`, { method: "POST" });
+      const data = await resp.json();
+      alert(data.message);
+    }
 
-        async function fetchPumps() {
-            const response = await fetch(PUMPS_API);
-            const pumps = await response.json();
-            const ingredients = await fetchIngredients();
-            const list = document.getElementById("pumps-list");
-            list.innerHTML = "";
+    // 🚀 PUMPS
+    async function loadPumps() {
+      // ingredientes
+      const ingResp = await fetch("/ingredients");
+      ingredients = await ingResp.json();
 
-            pumps.sort((a, b) => a.id - b.id);
+      // bombas
+      const pumpResp = await fetch("/pumps");
+      const pumps = await pumpResp.json();
 
-            pumps.forEach(pump => {
-                const li = document.createElement("li");
-                li.innerHTML = `
-                    <label for="pump-${pump.id}">Bomba ${pump.id}:</label>
-                    <select id="pump-${pump.id}">
-                        ${ingredients.map(ing => `
-                            <option value="${ing.id}" ${pump.ingredient && pump.ingredient.id === ing.id ? "selected" : ""}>
-                                ${ing.name}
-                            </option>`).join("")}
-                    </select>
-                    <button onclick="updatePump(${pump.id})">Actualizar</button>
-                `;
-                list.appendChild(li);
-            });
-        }
+      pumps.forEach(pump => {
+        document.getElementById(`pump-${pump.id}-ingredient`).innerText = pump.ingredient ? pump.ingredient.name : "[No asignado]";
+      });
+    }
 
-        async function fetchIngredients() {
-            const response = await fetch(INGREDIENTS_API);
-            return await response.json();
-        }
+    function openModal(pumpId) {
+      selectedPump = pumpId;
+      const list = document.getElementById("ingredients-list");
+      list.innerHTML = "";
+      ingredients.forEach(ing => {
+        const btn = document.createElement("button");
+        btn.className = "ingredient-btn";
+        btn.innerText = ing.name;
+        btn.onclick = () => assignIngredient(pumpId, ing);
+        list.appendChild(btn);
+      });
+      document.getElementById("ingredient-modal").style.display = "flex";
+    }
 
-        async function updatePump(pumpId) {
-            const selectElement = document.getElementById(`pump-${pumpId}`);
-        
-            if (!selectElement) {
-                alert(`Error: No se encontró el select para la Bomba ${pumpId}`);
-                return;
-            }
-        
-            const ingredientId = parseInt(selectElement.value);
-        
-            const response = await fetch(`${PUMPS_API}${pumpId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ingredient_id: ingredientId })
-            });
-        
-            const result = await response.json();
-        
-            if (!response.ok) {
-                alert("Error: " + result.detail);
-            } else {
-                alert("✅ Bomba actualizada correctamente.");
-                fetchPumps();
-            }
-        }
+    function closeModal() {
+      document.getElementById("ingredient-modal").style.display = "none";
+      selectedPump = null;
+    }
 
-        async function deleteDrink(id) {
-            const confirmDelete = confirm("¿Estás seguro de que quieres eliminar este drink?");
-            if (!confirmDelete) return;
+    async function assignIngredient(pumpId, ingredient) {
+      await fetch(`/pumps/${pumpId}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ ingredient_id: ingredient.id })
+      });
 
-            const response = await fetch(`${DRINKS_API}${id}`, { method: "DELETE" });
+      // 🔹 refrescar toda la grilla de bombas
+      await loadPumps();
 
-            if (response.ok) {
-                alert("🗑️ Drink eliminado correctamente.");
-                fetchDrinks();
-            } else {
-                alert("❌ Error al eliminar el drink.");
-            }
-        }
+      closeModal();
+    }
 
-        async function prepareDrink(id) {
-            try {
-                const response = await fetch(`${DRINKS_API}prepare/${id}`, { method: "POST" });
-                const data = await response.json();
-
-                if (response.ok) {
-                    alert(`✅ ${data.message}`);
-                    console.log("Instrucciones:", data.instructions);
-                } else {
-                    alert(`⚠️ Error: ${data.detail}`);
-                }
-            } catch (error) {
-                alert("❌ Error al intentar preparar el drink.");
-                console.error(error);
-            }
-        }
-
-        fetchDrinks();
-    </script>    
+    // inicial
+    loadDrinks();
+  </script>
 </body>
 </html>
