@@ -47,6 +47,9 @@ async def get_drinks_with_availability(db: AsyncSession):
         ingredient_ids = {di.ingredient_id for di in drink.ingredients}
         drink.is_available = ingredient_ids.issubset(available_ingredient_ids)
 
+    # 🔹 Ordenar: primero disponibles (True), después no disponibles (False)
+    drinks.sort(key=lambda d: d.is_available, reverse=True)
+
     return drinks
 
 
