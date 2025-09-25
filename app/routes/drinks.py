@@ -67,3 +67,16 @@ def test_leds(tiempo: int):
     thread = threading.Thread(target=encender_leds)
     thread.start()
     return {"mensaje": f"Probando LEDs por {tiempo} segundos cada uno"}
+
+
+# Modo limpieza: acciona todas las bombas 5s cada una
+@router.post("/limpieza")
+def limpieza():
+    # Ejecuta secuencialmente las 4 bombas por 5s cada una
+    for pump_id in sorted(PUMP_LED_PINS):
+        GPIO.output(PUMP_LED_PINS[pump_id], GPIO.HIGH)
+        time.sleep(5)
+        GPIO.output(PUMP_LED_PINS[pump_id], GPIO.LOW)
+
+    # Devuelve respuesta solo cuando todo terminó
+    return {"message": "✅ Limpieza completada"}
