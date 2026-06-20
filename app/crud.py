@@ -146,10 +146,26 @@ async def assign_pump(db: AsyncSession, pump_id: int, pump_data: PumpCreate):
         raise HTTPException(status_code=400, detail="No se puede asignar este ingrediente a otro Pump.")
 
 
+# Apaga todas las bombas (seguridad: que ninguna quede mandando líquido)
+def apagar_todas_las_bombas():
+    for pin in PUMP_GPIO_MAP.values():
+        GPIO.output(pin, GPIO.LOW)
+
+
+# Activa la bomba durante `tiempo` segundos, pero vigila el vaso mientras tanto.
+# Devuelve True si terminó OK, False si se interrumpió porque desapareció el vaso.
 def activar_bomba(gpio_pin, tiempo):
+    INTERVALO = 0.5  # cada cuánto (seg) se chequea el sensor de vaso
+    transcurrido = 0.0
     GPIO.output(gpio_pin, GPIO.HIGH)
-    time.sleep(tiempo)
+    while transcurrido < tiempo:
+        if not vaso_presente():
+            GPIO.output(gpio_pin, GPIO.LOW)  # corta esta bomba al instante
+            return False
+        time.sleep(INTERVALO)
+        transcurrido += INTERVALO
     GPIO.output(gpio_pin, GPIO.LOW)
+    return True
 
 
 # Preparar un trago con proporciones (secuencial, de menor a mayor)
@@ -204,7 +220,8 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
         # 5. Ordenar por proporción ascendente (menos cantidad primero)
         sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.proportion)
 
-        # 6. Preparar secuencialmente (uno tras otro)
+        # 6. Preparar secuencialmente (uno tras otro).
+        # Devuelve True si se completó, False si se interrumpió por falta de vaso.
         def preparar_secuencial():
             for di in sorted_ingredients:
                 bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
@@ -212,11 +229,21 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
                 if gpio_pin:
                     ml = di.proportion * VOLUME_PER_DRINK
                     tiempo = ml / FLOW_RATE
-                    activar_bomba(gpio_pin, tiempo)
+                    if not activar_bomba(gpio_pin, tiempo):
+                        apagar_todas_las_bombas()  # seguridad: cortar todo
+                        return False
+            return True
 
         # Esperar a que termine la preparación antes de responder
         # (corre los time.sleep en un hilo para no bloquear el resto del servidor)
-        await asyncio.to_thread(preparar_secuencial)
+        completado = await asyncio.to_thread(preparar_secuencial)
+
+        # Si se quitó el vaso a mitad de la preparación, avisar y no marcar como listo
+        if not completado:
+            raise HTTPException(
+                status_code=400,
+                detail="Se retiró el vaso durante la preparación. Se detuvieron las bombas."
+            )
 
         return {
             "message": f"Trago preparado: {drink.name}",
