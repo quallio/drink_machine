@@ -11,6 +11,7 @@ from fastapi import HTTPException
 ## PARA PRENDER LED ##
 import RPi.GPIO as GPIO
 import threading
+import asyncio
 import time
 #########################
 PUMP_GPIO_MAP = {
@@ -19,12 +20,25 @@ PUMP_GPIO_MAP = {
     3: 23,
     4: 24
 }
+# Sensor de presencia de vaso (señal activa en bajo: 0V = vaso presente, 3.3V = sin vaso)
+GLASS_SENSOR_PIN = 25
 ###########################
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 for pin in PUMP_GPIO_MAP.values():
     GPIO.setup(pin, GPIO.OUT)
+# Entrada con pull-up: si el sensor se desconecta, se lee "sin vaso" (1) en vez de flotante
+GPIO.setup(GLASS_SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 ###########################
+
+# Candado: garantiza que se prepare un solo trago a la vez
+prepare_lock = asyncio.Lock()
+
+
+# Devuelve True si hay un vaso presente (señal en bajo / 0V)
+def vaso_presente() -> bool:
+    return GPIO.input(GLASS_SENSOR_PIN) == GPIO.LOW
+
 
 # Constantes de calibración
 VOLUME_PER_DRINK = 300   # ml por vaso estándar
@@ -151,51 +165,69 @@ async def prepare_drink_logic(db: AsyncSession, drink_id: int):
     if not drink:
         raise HTTPException(status_code=404, detail="Drink no encontrado")
 
-    # 2. Obtener las bombas configuradas
-    result = await db.execute(select(Pump))
-    pumps = result.scalars().all()
-    available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
-
-    # 3. Verificar si todos los ingredientes están disponibles
-    missing_ingredients = []
-    for di in drink.ingredients:
-        if di.ingredient_id not in available_ingredient_ids:
-            missing_ingredients.append(di.ingredient_id)
-
-    if missing_ingredients:
+    # 1.5. Rechazar si ya se está preparando otro trago (un solo trago a la vez).
+    # El check + acquire son atómicos (sin await en el medio), así no hay carrera.
+    if prepare_lock.locked():
         raise HTTPException(
-            status_code=400,
-            detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
+            status_code=409,
+            detail="Ya se está preparando un trago. Esperá a que termine."
         )
 
-    # 4. Mapeo ingrediente → bomba
-    ingrediente_a_bomba = {pump.ingredient_id: pump.id for pump in pumps if pump.ingredient_id}
+    async with prepare_lock:
+        # 1.6. Verificar que haya un vaso presente antes de preparar
+        if not vaso_presente():
+            raise HTTPException(
+                status_code=400,
+                detail="No hay vaso presente. Colocá un vaso antes de preparar el trago."
+            )
 
-    # 5. Ordenar por proporción ascendente (menos cantidad primero)
-    sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.proportion)
+        # 2. Obtener las bombas configuradas
+        result = await db.execute(select(Pump))
+        pumps = result.scalars().all()
+        available_ingredient_ids = {pump.ingredient_id for pump in pumps if pump.ingredient_id is not None}
 
-    # 6. Preparar secuencialmente (uno tras otro)
-    def preparar_secuencial():
-        for di in sorted_ingredients:
-            bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
-            gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
-            if gpio_pin:
-                ml = di.proportion * VOLUME_PER_DRINK
-                tiempo = ml / FLOW_RATE
-                activar_bomba(gpio_pin, tiempo)
+        # 3. Verificar si todos los ingredientes están disponibles
+        missing_ingredients = []
+        for di in drink.ingredients:
+            if di.ingredient_id not in available_ingredient_ids:
+                missing_ingredients.append(di.ingredient_id)
 
-    threading.Thread(target=preparar_secuencial).start()
+        if missing_ingredients:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No están disponibles en las bombas los ingredientes: {missing_ingredients}"
+            )
 
-    return {
-        "message": f"Preparando el trago: {drink.name}",
-        "instructions": [
-            {
-                "ingredient_id": di.ingredient_id,
-                "proportion": di.proportion,
-                "ml": di.proportion * VOLUME_PER_DRINK,
-                "time_s": (di.proportion * VOLUME_PER_DRINK) / FLOW_RATE,
-                "pump": ingrediente_a_bomba.get(di.ingredient_id),
-                "gpio_pin": PUMP_GPIO_MAP.get(ingrediente_a_bomba.get(di.ingredient_id))
-            } for di in sorted_ingredients
-        ]
-    }
+        # 4. Mapeo ingrediente → bomba
+        ingrediente_a_bomba = {pump.ingredient_id: pump.id for pump in pumps if pump.ingredient_id}
+
+        # 5. Ordenar por proporción ascendente (menos cantidad primero)
+        sorted_ingredients = sorted(drink.ingredients, key=lambda x: x.proportion)
+
+        # 6. Preparar secuencialmente (uno tras otro)
+        def preparar_secuencial():
+            for di in sorted_ingredients:
+                bomba_id = ingrediente_a_bomba.get(di.ingredient_id)
+                gpio_pin = PUMP_GPIO_MAP.get(bomba_id)
+                if gpio_pin:
+                    ml = di.proportion * VOLUME_PER_DRINK
+                    tiempo = ml / FLOW_RATE
+                    activar_bomba(gpio_pin, tiempo)
+
+        # Esperar a que termine la preparación antes de responder
+        # (corre los time.sleep en un hilo para no bloquear el resto del servidor)
+        await asyncio.to_thread(preparar_secuencial)
+
+        return {
+            "message": f"Trago preparado: {drink.name}",
+            "instructions": [
+                {
+                    "ingredient_id": di.ingredient_id,
+                    "proportion": di.proportion,
+                    "ml": di.proportion * VOLUME_PER_DRINK,
+                    "time_s": (di.proportion * VOLUME_PER_DRINK) / FLOW_RATE,
+                    "pump": ingrediente_a_bomba.get(di.ingredient_id),
+                    "gpio_pin": PUMP_GPIO_MAP.get(ingrediente_a_bomba.get(di.ingredient_id))
+                } for di in sorted_ingredients
+            ]
+        }

@@ -276,10 +276,10 @@
         if (res.ok) {
           finishStatusModal(`✅ ${data.message} - Trago listo!`);
         } else {
-          finishStatusModal(`⚠️ Error: ${data.detail}`);
+          finishStatusModal(`⚠️ Error: ${data.detail}`, 'red');
         }
       } catch {
-        finishStatusModal('❌ Error al intentar preparar el drink.');
+        finishStatusModal('❌ Error al intentar preparar el drink.', 'red');
       }
     }
 
@@ -291,10 +291,10 @@
         if (res.ok) {
           finishStatusModal(`✅ ${data.message}`);
         } else {
-          finishStatusModal(`⚠️ Error: ${data.detail}`);
+          finishStatusModal(`⚠️ Error: ${data.detail}`, 'red');
         }
       } catch {
-        finishStatusModal('❌ Error al ejecutar limpieza.');
+        finishStatusModal('❌ Error al ejecutar limpieza.', 'red');
       }
     }
 
@@ -310,8 +310,8 @@
       t.textContent = msg;
       t.style.color = color;
     }
-    function finishStatusModal(msg) {
-      setStatusText(msg, 'green');
+    function finishStatusModal(msg, color='green') {
+      setStatusText(msg, color);
       document.getElementById('status-spinner').style.display = 'none';
       setTimeout(() => { document.getElementById('status-modal').style.display = 'none'; }, 2000);
     }
