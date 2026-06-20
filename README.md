@@ -231,3 +231,54 @@ postgres   645 postgres    6u  IPv6   6396      0t0  TCP *:5432 (LISTEN)
 
 pf@raspberrypi:~ $ grep -Ri "chromium" /etc/xdg/ /home/pf/.config/ /etc/lightdm/ 2>/dev/null
 
+
+# ============================================
+# SENSOR DE PRESENCIA DE VASO
+# ============================================
+
+Se agregó un sensor de presencia de vaso para evitar preparar un trago sin vaso.
+
+## Hardware / Cableado
+- El sensor se alimenta a 5V (ya cableado).
+- El pin de SEÑAL del sensor va a la GPIO 25 (pin físico 22) de la Raspberry.
+- Es activo en bajo (active-low):
+    - Vaso PRESENTE  -> 0V   -> 0 lógico (GPIO.LOW)
+    - SIN vaso       -> 3.3V -> 1 lógico (GPIO.HIGH)
+- La GPIO se configura como entrada con pull-up interno: si el sensor se
+  desconecta, se lee "sin vaso" (1) en vez de un valor flotante.
+
+## Cómo funciona
+- Definido en app/crud.py:
+    - GLASS_SENSOR_PIN = 25
+    - función vaso_presente() -> True cuando lee GPIO.LOW (vaso presente)
+- Antes de preparar un trago (prepare_drink_logic) se chequea el sensor:
+  si NO hay vaso, devuelve error HTTP 400 y NO acciona ninguna bomba.
+  El frontend muestra el cartel en rojo: "No hay vaso presente...".
+
+## Si la lógica queda invertida
+Si dice "no hay vaso" con el vaso puesto (o al revés), invertir la
+comparación en vaso_presente() en app/crud.py (GPIO.LOW <-> GPIO.HIGH).
+
+# ============================================
+# UN SOLO TRAGO A LA VEZ
+# ============================================
+- prepare_drink_logic usa un candado (asyncio.Lock) para preparar un único
+  trago a la vez. Si se pide otro mientras hay uno en curso, devuelve
+  error HTTP 409 ("Ya se está preparando un trago...").
+- La respuesta del backend ahora se envía RECIÉN cuando terminan las bombas,
+  así el cartel de "Trago preparado" aparece al final (no antes).
+
+# ============================================
+# DESPLEGAR CAMBIOS EN LA RASPBERRY
+# ============================================
+# 1. (En la notebook) commit + push a GitHub
+# 2. Conectarse a la Raspberry:
+ssh pf@192.168.1.44
+# 3. Bajar el código nuevo:
+cd ~/drink_machine
+git pull
+# 4. Reiniciar el backend para que tome los cambios:
+sudo systemctl restart drink_machine_backend.service
+# 5. Verificar que arrancó OK:
+systemctl status drink_machine_backend.service
+
